@@ -1,0 +1,10 @@
+# -*-Python-*-
+Import('env')
+env = env.Clone()
+env.Append(CPPPATH='.')
+
+env.Program('opencl',
+            ['opencl.cc'])
+env.Command('kernel.h', 'kernel.c',
+            'xxd -i <$SOURCE >$TARGET')
+

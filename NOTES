@@ -1,0 +1,40 @@
+How much speed up can we expect to get from opencl?
+
+How does the single threaded performance compare with the host CPU?
+
+How much parallelism can I get in the best case?
+
+How does the work group size affect the parallelism?
+
+How does the number of work groups affect the parallelism?
+
+What is the effect if one work group member takes longer than others?
+
+What is the effect if one work item takes longer than others?
+
+How does a group function affect the performance?
+
+What is the cost of an initial load from local memory?
+
+What is the cost of an initial load from global memory?
+
+What is the effect of making the load/store address random?
+
+---------------------------------------------------------------------------
+
+Test parameters:
+  Number of items per work group
+  Number of work groups
+  Normal number of iterations
+  Increased number of iterations (one group or all groups)
+  Initial value location (compute/local/global)
+  Result location (local/global)
+
+---------------------------------------------------------------------------
+
+Work definition:
+  Load/compute the initial CRC value.
+  Iterate the specified number of times.
+  Store the result (local/global)
+
+---------------------------------------------------------------------------

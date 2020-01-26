@@ -1,0 +1,6 @@
+syntax: glob
+.hg*
+.sconsign.dblite
+build
+*~
+*.orig
