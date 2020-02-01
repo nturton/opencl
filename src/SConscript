@@ -3,6 +3,8 @@ Import('env')
 env = env.Clone()
 env.Append(CPPPATH='.')
 
+env.Program('ocl_info',
+            ['ocl_info.cc'])
 env.Program('opencl',
             ['opencl.cc'])
 env.Command('kernel.h', 'kernel.c',
