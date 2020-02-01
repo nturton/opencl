@@ -82,7 +82,7 @@ void test_device(cl::Context &context, cl::Device &device,
   queue.enqueueNDRangeKernel(crc_iter,
                              cl::NullRange,
                              cl::NDRange(count),
-                             cl::NDRange(count),
+                             cl::NDRange(size),
                              NULL,
                              &event);
   event.wait();
