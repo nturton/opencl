@@ -3,10 +3,13 @@ Import('env')
 env = env.Clone()
 env.Append(CPPPATH='.')
 
+test_env = env.Clone()
+test_env.Append(LIBS='boost_program_options')
+
 env.Program('ocl_info',
             ['ocl_info.cc'])
-env.Program('ocl_test',
-            ['ocl_test.cc'])
+test_env.Program('ocl_test',
+                 ['ocl_test.cc'])
 env.Command('kernel.h', 'kernel.c',
             'xxd -i <$SOURCE >$TARGET')
 
