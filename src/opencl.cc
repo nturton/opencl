@@ -3,7 +3,10 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 100
 #include <CL/cl2.hpp>
 #include <cstdint>
+#include <list>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 // kernel calculates for each element C=A+B
@@ -20,7 +23,23 @@ void report_device(cl::Device &device)
 {
   std::cout << "\n";
   std::cout << "\tOpenCL\tDevice : "  << device.getInfo<CL_DEVICE_NAME>().c_str() << std::endl;
-  std::cout << "\t\t Type : "  << device.getInfo<CL_DEVICE_TYPE>() << std::endl;
+  cl_int val = device.getInfo<CL_DEVICE_TYPE>();
+  std::cout << "\t\t Type : "  << val << " (";
+  std::list<std::string> types;
+  if (val & CL_DEVICE_TYPE_DEFAULT)
+    types.push_back("default");
+  if (val & CL_DEVICE_TYPE_CPU)
+    types.push_back("cpu");
+  if (val & CL_DEVICE_TYPE_GPU)
+    types.push_back("gpu");
+  if (val & CL_DEVICE_TYPE_ACCELERATOR)
+    types.push_back("accel");
+  if (val & CL_DEVICE_TYPE_CUSTOM)
+    types.push_back("custom");
+  for(auto it=types.begin(); it!=types.end(); it++) {
+    std::cout << (it != types.begin() ? " " : "") << *it;
+  }
+  std::cout << ")\n";
   std::cout << "\t\t Vendor : "  << device.getInfo<CL_DEVICE_VENDOR>().c_str() << std::endl;
   std::cout << "\t\t Version : "  << device.getInfo<CL_DEVICE_VERSION>().c_str() << std::endl;
   std::cout << "\t\t Extensions : "  << device.getInfo<CL_DEVICE_EXTENSIONS>().c_str() << std::endl;
@@ -56,45 +75,45 @@ void test_device(cl::Device &device)
     return;
   }
 
+  int count = 100;
+
   // create buffers on the device
-  cl::Buffer buffer_A(context,CL_MEM_READ_WRITE,sizeof(int)*10);
-  cl::Buffer buffer_B(context,CL_MEM_READ_WRITE,sizeof(int)*10);
-  cl::Buffer buffer_C(context,CL_MEM_READ_WRITE,sizeof(int)*10);
+  cl::Buffer iter_buffer(context, CL_MEM_READ_WRITE, sizeof(cl_uint)*3);
+  cl::Buffer result_buffer(context, CL_MEM_READ_WRITE, sizeof(cl_uint)*count);
 
   // The local buffers.
-  int A[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  int B[] = {0, 1, 2, 0, 1, 2, 0, 1, 2, 0};
+  int iters[] = {1024, 1024, 1024};
+  int results[count];
 
   //create queue to which we will push commands for the device.
   cl::CommandQueue queue(context, device);
 
-  //write arrays A and B to the device
-  queue.enqueueWriteBuffer(buffer_A,CL_TRUE,0,sizeof(int)*10,A);
-  queue.enqueueWriteBuffer(buffer_B,CL_TRUE,0,sizeof(int)*10,B);
+  // Write array iters to the device
+  queue.enqueueWriteBuffer(iter_buffer, CL_TRUE, 0, sizeof(cl_uint)*3, iters);
 
-  cl::Kernel simple_add(program, "simple_add");
-  simple_add.setArg(0, buffer_A);
-  simple_add.setArg(1, buffer_B);
-  simple_add.setArg(2, buffer_C);
+  cl::Kernel simple_add(program, "crc_iter");
+  simple_add.setArg(0, iter_buffer);
+  simple_add.setArg(1, result_buffer);
 
   cl::Event event;
   queue.enqueueNDRangeKernel(simple_add,
                              cl::NullRange,
-                             cl::NDRange(10),
-                             cl::NDRange(10),
+                             cl::NDRange(count),
+                             cl::NDRange(count),
                              NULL,
                              &event);
   event.wait();
 
-  int C[10];
-  //read result C from the device to array C
-  queue.enqueueReadBuffer(buffer_C,CL_TRUE,0,sizeof(int)*10,C);
+  //read results from the device to array results
+  queue.enqueueReadBuffer(result_buffer, CL_TRUE, 0,
+                          sizeof(cl_uint)*count, results);
 
-  std::cout << "\t\tresult:";
-  for(int i=0;i<10;i++){
-    std::cout << " " << A[i] << "+" << B[i] << "=" << C[i];
+  std::cout << "\t\tresults:\n";
+  for(int i=0;i<count;i++) {
+    std::stringstream ss;
+    ss << std::hex << std::setw(8) << std::setfill('0') << results[i];
+    std::cout << "\t\t  " << i << ": 0x" << ss.str() << '\n';
   }
-  std::cout << "\n";
 }
 
 void process_device(cl::Device &device)
