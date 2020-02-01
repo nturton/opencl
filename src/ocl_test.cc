@@ -89,18 +89,6 @@ void test_device(cl::Context &context, cl::Device &device,
 
   auto end = std::chrono::high_resolution_clock::now();
 
-  //read results from the device to array results
-  queue.enqueueReadBuffer(result_buffer, CL_TRUE, 0,
-                          sizeof(cl_uint)*g_size, results);
-
-  cl_uint total = 0;
-  for(int i=0;i<g_size;i++)
-    total += results[i];
-
-  std::stringstream ss;
-  ss << std::hex << std::setw(8) << std::setfill('0') << total;
-  std::cout << "Total: 0x" << ss.str() << '\n';
-
   const double ns_per_s = 1000000000.;
   double t_queued = double(event.getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>()) / ns_per_s;
   double t_submit = double(event.getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>()) / ns_per_s;
