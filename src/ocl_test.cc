@@ -6,6 +6,7 @@
 #include <boost/program_options.hpp>
 
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <list>
 #include <iomanip>
@@ -75,6 +76,9 @@ void test_device(cl::Context &context, cl::Device &device,
   simple_add.setArg(1, result_buffer);
 
   cl::Event event;
+
+  auto start = std::chrono::high_resolution_clock::now();
+
   queue.enqueueNDRangeKernel(simple_add,
                              cl::NullRange,
                              cl::NDRange(count),
@@ -82,6 +86,8 @@ void test_device(cl::Context &context, cl::Device &device,
                              NULL,
                              &event);
   event.wait();
+
+  auto end = std::chrono::high_resolution_clock::now();
 
   //read results from the device to array results
   queue.enqueueReadBuffer(result_buffer, CL_TRUE, 0,
@@ -94,6 +100,10 @@ void test_device(cl::Context &context, cl::Device &device,
   std::stringstream ss;
   ss << std::hex << std::setw(8) << std::setfill('0') << total;
   std::cout << "Total: 0x" << ss.str() << '\n';
+
+  typedef std::chrono::duration<double> duration_double;
+  auto d = std::chrono::duration_cast<duration_double>(end-start);
+  std::cout << "Elapsed: " << d.count() << '\n';
 }
 
 int test_devices(unsigned count, unsigned size, const uint_vec &iters_vec)
