@@ -19,11 +19,8 @@ static const cl::Program::Sources sources {
   { kernel_code, sizeof(kernel_code) },
 };
 
-void test_device(cl::Device &device)
+void test_device(cl::Context &context, cl::Device &device)
 {
-  std::cout << "\tOpenCL\tDevice : "  << device.getInfo<CL_DEVICE_NAME>().c_str() << std::endl;
-
-  cl::Context context(device);
   cl::Program program(context, sources);
   if (program.build({device}) != CL_SUCCESS) {
     std::cout << "Failed to compile program: "
@@ -71,64 +68,20 @@ void test_device(cl::Device &device)
 
   std::stringstream ss;
   ss << std::hex << std::setw(8) << std::setfill('0') << total;
-  std::cout << "\t\tTotal: 0x" << ss.str() << '\n';
+  std::cout << "Total: 0x" << ss.str() << '\n';
 }
 
-void process_device(cl::Device &device)
+int test_devices()
 {
-  test_device(device);
-}
+  cl::Context context(CL_DEVICE_TYPE_DEFAULT);
 
-void report_platform(cl::Platform &plat)
-{
-  std::cout << "OpenCL\tPlatform : " << plat.getInfo<CL_PLATFORM_NAME>().c_str() << std::endl;
-  std::cout << "\tVendor: " << plat.getInfo<CL_PLATFORM_VENDOR>().c_str() << std::endl;
-  std::cout << "\tVersion : " << plat.getInfo<CL_PLATFORM_VERSION>().c_str() << std::endl;
-}
-
-void process_platform(cl::Platform &plat)
-{
-  report_platform(plat);
-
-// get devices
-  std::vector<cl::Device> devices;
-
-  try {
-    plat.getDevices(CL_DEVICE_TYPE_ALL,&devices);
-  }
-  catch (cl::Error err) {
-    std::cout
-      << std::endl
-      << "\tFailed to get devices: "
-      << err.what()
-      << "("
-      << err.err()
-      << ")"
-      << std::endl;
-  }
-
-// iterate over available devices
-  for(std::vector<cl::Device>::iterator dev_it=devices.begin(); dev_it!=devices.end(); dev_it++)
-  {
-    process_device(*dev_it);
-  }
-  std::cout << "\n";
-}
-
-int process_platforms()
-{
-  typedef std::vector<cl::Platform> Platform_vec;
-  Platform_vec platforms;
-  cl::Platform::get(&platforms);
-  if (platforms.size() == 0) {
-    std::cout << "No OpenCL platforms available\n";
-    return 1;
-  }
-
-  for(Platform_vec::iterator it = platforms.begin();
-      it != platforms.end();
-      it++) {
-    process_platform(*it);
+  std::vector<cl::Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
+  for(auto it=devices.begin(); it!=devices.end(); it++) {
+    cl::Platform platform(it->getInfo<CL_DEVICE_PLATFORM>());
+    std::cout << "Platform: " << platform.getInfo<CL_PLATFORM_NAME>() << '\n';
+    std::cout << "Device:   " << it->getInfo<CL_DEVICE_NAME>() << '\n';
+    test_device(context, *it);
+    std::cout << '\n';
   }
 
   return 0;
@@ -137,7 +90,7 @@ int process_platforms()
 int main()
 {
   try {
-    return process_platforms();
+    return test_devices();
   }
   catch (cl::Error err) {
     std::cerr 
@@ -147,6 +100,10 @@ int main()
       << err.err()
       << ")"
       << std::endl;
+    return 1;
+  }
+  catch (std::exception &e) {
+    std::cerr << "ERROR: " << e.what() << '\n';
     return 1;
   }
 }
