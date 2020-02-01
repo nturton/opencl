@@ -66,7 +66,7 @@ void test_device(cl::Context &context, cl::Device &device,
   }
 
   //create queue to which we will push commands for the device.
-  cl::CommandQueue queue(context, device);
+  cl::CommandQueue queue(context, device, CL_QUEUE_PROFILING_ENABLE);
 
   // Write array iters to the device
   queue.enqueueWriteBuffer(iter_buffer, CL_TRUE, 0, sizeof(cl_uint)*3, iters);
@@ -101,9 +101,18 @@ void test_device(cl::Context &context, cl::Device &device,
   ss << std::hex << std::setw(8) << std::setfill('0') << total;
   std::cout << "Total: 0x" << ss.str() << '\n';
 
+  const double ns_per_s = 1000000000.;
+  double t_queued = double(event.getProfilingInfo<CL_PROFILING_COMMAND_QUEUED>()) / ns_per_s;
+  double t_submit = double(event.getProfilingInfo<CL_PROFILING_COMMAND_SUBMIT>()) / ns_per_s;
+  double t_start = double(event.getProfilingInfo<CL_PROFILING_COMMAND_START>()) / ns_per_s;
+  double t_end = double(event.getProfilingInfo<CL_PROFILING_COMMAND_END>()) / ns_per_s;
+
   typedef std::chrono::duration<double> duration_double;
   auto d = std::chrono::duration_cast<duration_double>(end-start);
-  std::cout << "Elapsed: " << d.count() << '\n';
+  std::cout << "Elapsed:   " << d.count() << " s\n";
+  std::cout << "Queued:    " << t_submit - t_queued << " s\n";
+  std::cout << "Submitted: " << t_start - t_submit << " s\n";
+  std::cout << "Running:   " << t_end - t_start << " s\n";
 }
 
 int test_devices(unsigned count, unsigned size, const uint_vec &iters_vec)
