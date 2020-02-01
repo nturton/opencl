@@ -29,7 +29,7 @@ static const cl::Program::Sources sources {
 };
 
 void test_device(cl::Context &context, cl::Device &device,
-                 unsigned count, unsigned size,
+                 unsigned g_size, unsigned l_size,
                  const uint_vec &iters_vec)
 {
   cl::Program program(context, sources);
@@ -42,11 +42,11 @@ void test_device(cl::Context &context, cl::Device &device,
 
   // create buffers on the device
   cl::Buffer iter_buffer(context, CL_MEM_READ_WRITE, sizeof(cl_uint)*3);
-  cl::Buffer result_buffer(context, CL_MEM_READ_WRITE, sizeof(cl_uint)*count);
+  cl::Buffer result_buffer(context, CL_MEM_READ_WRITE, sizeof(cl_uint)*g_size);
 
   // The local buffers.
   int iters[] = {1024, 1024, 1024};
-  int results[count];
+  int results[g_size];
 
   switch (iters_vec.size()) {
   case 1:
@@ -81,8 +81,8 @@ void test_device(cl::Context &context, cl::Device &device,
 
   queue.enqueueNDRangeKernel(crc_iter,
                              cl::NullRange,
-                             cl::NDRange(count),
-                             cl::NDRange(size),
+                             cl::NDRange(g_size),
+                             cl::NDRange(l_size),
                              NULL,
                              &event);
   event.wait();
@@ -91,10 +91,10 @@ void test_device(cl::Context &context, cl::Device &device,
 
   //read results from the device to array results
   queue.enqueueReadBuffer(result_buffer, CL_TRUE, 0,
-                          sizeof(cl_uint)*count, results);
+                          sizeof(cl_uint)*g_size, results);
 
   cl_uint total = 0;
-  for(int i=0;i<count;i++)
+  for(int i=0;i<g_size;i++)
     total += results[i];
 
   std::stringstream ss;
@@ -115,7 +115,7 @@ void test_device(cl::Context &context, cl::Device &device,
   std::cout << "Running:   " << t_end - t_start << " s\n";
 }
 
-int test_devices(unsigned count, unsigned size, const uint_vec &iters_vec)
+int test_devices(unsigned g_size, unsigned l_size, const uint_vec &iters_vec)
 {
   cl::Context context(CL_DEVICE_TYPE_DEFAULT);
 
@@ -124,7 +124,7 @@ int test_devices(unsigned count, unsigned size, const uint_vec &iters_vec)
     cl::Platform platform(it->getInfo<CL_DEVICE_PLATFORM>());
     std::cout << "Platform: " << platform.getInfo<CL_PLATFORM_NAME>() << '\n';
     std::cout << "Device:   " << it->getInfo<CL_DEVICE_NAME>() << '\n';
-    test_device(context, *it, count, size, iters_vec);
+    test_device(context, *it, g_size, l_size, iters_vec);
     std::cout << '\n';
   }
 
@@ -157,17 +157,17 @@ parse_uint_vec(const std::string &s)
 int main(int argc, char **argv)
 {
   try {
-    unsigned count;
-    unsigned size;
+    unsigned g_size;
+    unsigned l_size;
     std::string iters_str = "1024,1024,1024";
 
     // Declare the supported options.
     po::options_description desc("Options");
     desc.add_options()
       ("help", "Produce this help message")
-      ("count,c", po::value(&count)->default_value(1), "The number of work items")
+      ("global,g", po::value(&g_size)->default_value(1), "The global work size")
       ("iters,i", po::value(&iters_str), "The number of iterations")
-      ("size,s", po::value(&size)->default_value(1), "The work group size")
+      ("local,l", po::value(&l_size)->default_value(1), "The work group size")
       ;
 
     po::variables_map vm;
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
       return 1;
     }
 
-    return test_devices(count, size, iters_vec);
+    return test_devices(g_size, l_size, iters_vec);
   }
   catch (cl::Error err) {
     std::cerr 
