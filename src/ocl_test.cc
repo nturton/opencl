@@ -71,15 +71,15 @@ void test_device(cl::Context &context, cl::Device &device,
   // Write array iters to the device
   queue.enqueueWriteBuffer(iter_buffer, CL_TRUE, 0, sizeof(cl_uint)*3, iters);
 
-  cl::Kernel simple_add(program, "crc_iter");
-  simple_add.setArg(0, iter_buffer);
-  simple_add.setArg(1, result_buffer);
+  cl::Kernel crc_iter(program, "crc_iter");
+  crc_iter.setArg(0, iter_buffer);
+  crc_iter.setArg(1, result_buffer);
 
   cl::Event event;
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  queue.enqueueNDRangeKernel(simple_add,
+  queue.enqueueNDRangeKernel(crc_iter,
                              cl::NullRange,
                              cl::NDRange(count),
                              cl::NDRange(count),
